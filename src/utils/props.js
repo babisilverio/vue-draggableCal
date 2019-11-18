@@ -1,8 +1,8 @@
 export default {
   lang: {
     type: String,
-    enum: ['EN', 'FR'],
-    default: 'EN',
+    enum: ['EN', 'FR', 'PT_BR'],
+    default: 'PT_BR',
   },
   days: {
     type: Number,
@@ -49,4 +49,8 @@ export default {
     type: String,
     default: '#00008b',
   },
+  selectDay: {
+    type: String,
+    default: ''
+  }
 }
