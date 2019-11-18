@@ -1,6 +1,6 @@
 <template>
   <section class="container">
-    <div class="drag-calendar" style="display: block; background-color: 'transparent; height:12.6rem'">
+    <div class="drag-calendar" style="display: block; background-color: 'transparent'" :style="{height: years ? '12.6rem' : '9.6rem'}">
       <div v-if="years" :class="yearly.maxOffset < 0 ? 'wrapper' : 'wrapper-flex'">
         <div ref="yearly" state="yearly" class="years ui-draggable" style="left: 0px;" @mousedown="initDrag($event, yearly)" @touchstart="initDrag($event, yearly)" :style="yearly.phase === 'dragging' ? {pointerEvents: 'none', transition: 'none', cursor:'-webkit-grab'} : {} ">
           <div v-for="year in calendar.years" :key="year" class="year-cell cell" @click="toggleSelectYear($event, year)" :year-id="year" :selected="isSelected(null,null,year)">
@@ -15,41 +15,41 @@
       <div v-if="years" class="arrow top right" @click="goTo($event, yearly, 1)" :style="{visibility: yearly.realOffset <= yearly.maxOffset ? 'hidden' : 'visible'}">
       </div>
       <div :class="monthly.maxOffset < 0 ? 'wrapper' : 'wrapper-flex'">
-        <div ref="monthly" state="monthly" class="months ui-draggable" style="left: 0px;" >
-          <div v-for="month in calendar.months" :key="`${month.fullYear}-${month.monthNumber}`" v-if="month" class="month-cell cell" :class="{prev: month.prev, next: month.next, past: month.past}" :month-id="`${month.fullYear}-${month.monthNumber}`" :year-id="month.fullYear" :selected="isSelected(null, month, null)" v-show="isSelected(null, month, null)">
-            <div class="cell-content" :selected="selectedDate.monthNumber == month.monthNumber && selectedDate.fullYear == month.fullYear" :style="{backgroundColor: `${isSelected(null, month, null) || (selectedDate.monthNumber == month.monthNumber && selectedDate.fullYear == month.fullYear) ? '' : ''}` }">
-              <span class="cell-content month-name">{{MONTHS[month.monthNumber]}} </span>
-              <span v-if="!years"> {{month.fullYear}}</span>
+        <div ref="monthly" state="monthly" class="months ui-draggable" style="left: 0px;" @mousedown="initDrag($event, monthly)" @touchstart="initDrag($event, monthly)" :style="monthly.phase === 'dragging' ? {pointerEvents: 'none', transition: 'none', cursor:'-webkit-grab'} : {} ">
+          <div v-for="month in calendar.months" :key="`${month.fullYear}-${month.monthNumber}`" v-if="month" class="month-cell cell" :class="{prev: month.prev, next: month.next, past: month.past}" @click="toggleSelectMonth($event, month)" :month-id="`${month.fullYear}-${month.monthNumber}`" :year-id="month.fullYear" :selected="isSelected(null, month, null)">
+            <div class="cell-content" :selected="selectedDate.monthNumber == month.monthNumber && selectedDate.fullYear == month.fullYear" :style="{backgroundColor: `${isSelected(null, month, null) || (selectedDate.monthNumber == month.monthNumber && selectedDate.fullYear == month.fullYear) ? accentColor : ''}` }" @click.stop="scrollDayIntoView()">
+              <span class="cell-content month-name">{{MONTHS[month.monthNumber] | abr}} </span>
+              <div class="hover" v-if="month.next"> {{month.fullYear}}</div>
+              <div class="hover" v-if="month.prev"> {{month.fullYear}}</div>
+              <span v-if="!years"> {{month.fullYear%1000}}</span>
             </div>
           </div>
         </div>
       </div>
-      <div class="arrow left" :class="years ? 'middle' : 'top'" @click="goToNextMonth($event,monthly, -1)" :style="{visibility: firstMonth ? 'hidden' : 'visible'}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/><path fill="none" d="M0 0h24v24H0V0z"/></svg>
+      <div class="arrow left" :class="years ? 'middle' : 'top'" @click="goTo($event, monthly, -1)" :style="{visibility: monthly.realOffset >= 0 ? 'hidden' : 'visible'}">
       </div>
-      <div class="arrow right" :class="years ? 'middle' : 'top'" @click="goToNextMonth($event, monthly, 1)" :style="{visibility: lastMonth ? 'hidden' : 'visible'}">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/><path fill="none" d="M0 0h24v24H0V0z"/></svg>
+      <div class="arrow right" :class="years ? 'middle' : 'top'" @click="goTo($event, monthly, 1)" :style="{visibility: monthly.realOffset <= monthly.maxOffset ? 'hidden' : 'visible'}">
       </div>
       <div class="wrapper">
         <div ref="daily" state="daily" class="days ui-draggable" :style="daily.phase === 'dragging' ? {pointerEvents: 'none', transition: 'none', cursor:'-webkit-grab'} : {} " style="left: 0px;" @mousedown="initDrag($event, daily)" @touchstart="initDrag($event, daily)">
-          <div v-for="day in calendar.days" :key="day | ymd" :date="day | ymd" :initialDate="day.chosen" :closed="day.disabled" class="cal-cell cell" :class="{first: day.day == 1, next: day.next, prev: day.prev, today: day.today, }" :month-id="day.monthNumber" :year-id="day.fullYear" :day-id="day.day" @click="toggleSelect($event, day)" :selected="isSelected(day, null, null)" style="border-radius: 5px" :style="{backgroundColor: `${isSelected(day, null, null) ? accentColor : ''}` }">
+          <div v-for="day in calendar.days" :key="day | ymd" :date="day | ymd" :closed="day.disabled" class="cal-cell cell" :class="{first: day.day == 1, next: day.next, prev: day.prev, today: day.today, }" :month-id="day.monthNumber" :year-id="day.fullYear" :day-id="day.day" @click="toggleSelect($event, day)" :selected="isSelected(day, null, null)" :style="{backgroundColor: `${isSelected(day, null, null) ? accentColor : ''}` }">
             <div class="hover" v-if="day.next"> {{day.fullYear}}</div>
             <div class="hover" v-if="day.prev"> {{day.fullYear}}</div>
             <div class="cell-content">
-              <div class="day">
-                {{DAYS[day.dayOfTheWeek] | abr}}
-              </div>
               <div class="day-number">
                 {{day.day}}
+              </div>
+              <div class="day">
+                {{DAYS[day.dayOfTheWeek] | abr}}
               </div>
             </div>
           </div>
         </div>
       </div>
-      <!-- <div class="arrow bottom left" @click="goTo($event, daily, -1)" :style="{visibility: daily.realOffset >= 0 ? 'hidden' : 'visible'}">
+      <div class="arrow bottom left" @click="goTo($event, daily, -1)" :style="{visibility: daily.realOffset >= 0 ? 'hidden' : 'visible'}">
       </div>
       <div class="arrow bottom right" @click="goTo($event, daily, 1)" :style="{visibility: daily.realOffset <= daily.maxOffset ? 'hidden' : 'visible'}">
-      </div> -->
+      </div>
     </div>
   </section>
 </template>
@@ -58,9 +58,6 @@ import {abr, ymd} from '@/utils/filters'
 import {buildCalendar, buildEntireCalendar} from '@/utils/buildCalendar'
 import props from '@/utils/props'
 import languages from '@/utils/CONSTANTS'
-import $ from '../node_modules/jquery/src/jquery';
-import { constants } from 'crypto';
-
 export default {
   name: 'VueCal',
   filters: {abr, ymd},
@@ -86,7 +83,7 @@ export default {
     },
     currentState() {
       return [this.daily, this.monthly, this.yearly].filter(el => el.phase !== 'sleep')[0]
-    }
+    },
   },
   data() {
     return {
@@ -94,8 +91,6 @@ export default {
       DAYS: languages[this.lang].DAYS,
       MONTHS: languages[this.lang].MONTHS,
       selectedDate: this.selected,
-      firstMonth: true,
-      lastMonth: false,
       calendar: {
         months: [],
         days: [],
@@ -142,52 +137,6 @@ export default {
       if (state.realOffset < state.maxOffset) state.realOffset = state.maxOffset
       elem.style.left = `${state.realOffset}px`
       return true
-    },
-    goToNextMonth(event, monthly, coef){
-      let mesSelecionado = document.querySelector('[selected="selected"]');
-      let mesAtual = mesSelecionado.innerText.split(" ")[0].toLowerCase().trim();
-      let year = parseInt(mesSelecionado.innerText.split(" ")[1]);
-      let indexMes = languages[this.lang].MONTHS.lastIndexOf(mesAtual);
-      let mesAnoObj = this.calendar.months;
-
-      if(coef == 1) {
-        if(indexMes == 11) {
-          indexMes = 0;
-          year = year + 1;
-        } else {
-          indexMes = indexMes + 1;
-        }
-
-      } else {
-        if(indexMes == 0){
-          indexMes = 11;
-          year = year - 1;
-        } else {
-          indexMes = indexMes - 1;
-        }
-
-      }
-
-      let newSelectedMonth = mesAnoObj.filter((el) => {
-        return (el.monthNumber == indexMes) && (el.fullYear == year);
-      })
-
-      let lastestMonth = mesAnoObj.length -2;
-
-      if((mesAnoObj[1].monthNumber == newSelectedMonth[0].monthNumber)
-          && mesAnoObj[1].fullYear ==  newSelectedMonth[0].fullYear) {
-        this.firstMonth = true;
-      } else if((mesAnoObj[lastestMonth].monthNumber == newSelectedMonth[0].monthNumber)
-          && mesAnoObj[lastestMonth].fullYear == newSelectedMonth[0].fullYear) {
-        this.lastMonth = true;
-      } else {
-        this.firstMonth = false;
-        this.lastMonth = false;
-      }
-
-      this.initDrag(event, monthly);
-      this.toggleSelectMonth(event, newSelectedMonth[0]);
-
     },
     initDrag(e, state) {
       document.body.addEventListener('mousemove', this.handleDrag, false)
@@ -248,7 +197,6 @@ export default {
         this.selectedDate = {}
         return this.$emit('dateCleared')
       }
-
       this.dateSelected(day)
     },
     dateSelected(date) {
@@ -360,7 +308,7 @@ export default {
     },
   },
   updated() {
-    this.currentMonth;
+    this.currentMonth
   },
   created() {
     if (this.years) {
@@ -423,10 +371,10 @@ export default {
 }
 
 @font-face {
-  font-family: 'Roboto', sans-serif;
+  font-family: 'Oswald';
   font-style: normal;
   font-weight: 400;
-  src: url('public/Roboto-Regular.ttf') format('truetype');
+  src: url('public/font.woff2') format('woff2');
 }
 :root {
   @include responsive-font(1.75vw, 13px, 16px, 14px);
@@ -434,10 +382,8 @@ export default {
 
 .container {
   padding-top: 1em;
-  width: 100%;
+  width: 95%;
   margin: auto;
-  height: 11rem;
-  background-color: transparent;
 }
 
 .drag-calendar {
@@ -461,15 +407,15 @@ export default {
       pointer-events: none;
     }
   }
-
-
   .cal-cell[selected='selected'],
   .month-cell[selected='selected'] {
     border-radius: 0.5em;
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
     padding: 1.25em;
     .cell-content {
       div {
-        //transform: scale(1.5);
+        transform: scale(1.5);
         color: white;
       }
       .day-number {
@@ -478,7 +424,7 @@ export default {
     }
   }
   .arrow {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Oswald';
     width: 2rem;
     justify-content: center;
     position: absolute;
@@ -489,10 +435,10 @@ export default {
     background-color: white;
     color: darkgrey;
     &:hover {
-      // background-color: #f8f8ff;
-      // box-shadow: inset 0px 0px 5px 1px rgba(0, 0, 0, 0.1), inset 0px 0px 5px 1px rgba(0, 0, 0, 0.1);
+      background-color: #f8f8ff;
+      box-shadow: inset 0px 0px 5px 1px rgba(0, 0, 0, 0.1), inset 0px 0px 5px 1px rgba(0, 0, 0, 0.1);
       cursor: pointer;
-      // color: black;
+      color: black;
     }
     &.bottom {
       height: 5rem;
@@ -512,30 +458,30 @@ export default {
     &.left {
       left: 0;
       &.middle:before {
-        //content: '<';
+        content: '<';
         height: 2.5rem;
       }
       &.top:before {
-        //content: '<';
+        content: '<';
         height: 2.5rem;
       }
       &.bottom:before {
-        //content: '<';
+        content: '<';
         height: 4rem;
       }
     }
     &.right {
       right: 0;
       &.middle:before {
-        //content: '>';
+        content: '>';
         height: 2.5rem;
       }
       &.top:before {
-        //content: '>';
+        content: '>';
         height: 2.5rem;
       }
       &:before {
-        //content: '>';
+        content: '>';
         height: 4rem;
       }
     }
@@ -550,17 +496,17 @@ export default {
     padding: 0;
     position: relative;
     width: max-content;
-    height: 7rem;
+    height: 5rem;
     transition: all 1s ease;
     .cell {
       float: left;
-      width: 40px;
-      height: 75px;
-      padding: 0.5rem 0.3rem;
+      width: 4rem;
+      padding: 1.5rem 1.25rem;
       margin: 0;
-      text-align: center !important;
+      border-right: 1px solid rgba(0, 0, 0, 0.03);
+      text-align: center;
       position: relative;
-      color: rgba(0,0,0, 0.9);
+      color: #888;
       &:first-child {
         margin-left: 0.4em;
       }
@@ -602,11 +548,12 @@ export default {
           }
         }
       }
-      // &.today {
-      //   background: #828282;
-      //   color: white;
-      //   border-radius: 5px;
-      // }
+      &.today {
+        .day-number {
+          color: red;
+          text-decoration: underline;
+        }
+      }
       .day-number {
         display: block;
         clear: both;
@@ -614,22 +561,21 @@ export default {
         font-size: 1.2em;
         z-index: 1;
         position: relative;
-        top: 35px;
       }
       .day {
         display: block;
         clear: both;
-        text-transform: capitalize;
+        text-transform: uppercase;
         width: 100%;
         font-weight: 100;
         font-size: 12px;
-        margin: 0px !important;
+        margin-top: 0px;
         z-index: 1;
         position: relative;
       }
       &.first {
         background-color: rgba(0, 0, 0, 0.02);
-        color: #222;
+        color: #666;
         .day {
           font-weight: bold;
         }
@@ -656,26 +602,22 @@ export default {
     .cell {
       float: left;
       width: 8rem;
-      padding-top: 0.6rem;
-      padding-left: 2rem;
-      text-align: justify;
+      padding: 0.6rem;
+      text-align: center;
       position: relative;
-      //color: #888;
-      color: transparent;
+      color: #888;
+      border-right: 1px solid rgba(0, 0, 0, 0.03);
       position: relative;
       flex: 1;
       &:not([selected='selected']) {
         .cell-content[selected='selected'] {
-          opacity: 0.8;
-          //background-color: #214C8F;
-          background-color: transparent;
-          width: 8rem !important;
-          color:transparent;
-          //width: fit-content;
+          opacity: 1;
+          color: white;
+          width: fit-content;
           margin-left: auto;
           margin-right: auto;
-          margin-top: -0.3rem;
-          padding: 0.3rem;
+          padding: 0.4rem;
+          margin-top: -0.4rem;
           border-radius: 0.5rem;
           pointer-events: auto;
           cursor: pointer;
@@ -688,7 +630,6 @@ export default {
         opacity: 0.8;
         pointer-events: none;
         border-right: solid 0.5px rgba(222, 222, 222, 0.8);
-        display: none;
       }
       &.next,
       &.prev {
@@ -724,15 +665,14 @@ export default {
       }
       &[selected='selected'] {
         .cell-content {
-          opacity: 0.6;
-          color: #000;
-          background-color: #FFF;
+          opacity: 0.5;
+          color: white;
           border-radius: 0.5rem;
           padding: 0.3em;
           margin-top: -0.3rem;
-          font-weight: 700;
+          font-weight: 350;
           .month-name {
-            font-size: 1rem;
+            font-size: 0.9rem;
             padding: 0;
           }
         }
@@ -749,7 +689,7 @@ export default {
           font-size: 0.9rem;
           z-index: 1;
           position: relative;
-          text-transform: capitalize;
+          text-transform: uppercase;
         }
       }
     }
@@ -780,13 +720,13 @@ export default {
       position: relative;
       .cell-content {
         font-weight: 600;
-        font-size: 1.2rem;
+        font-size: 1rem;
         .month-name {
           font-weight: bold;
           font-size: 1rem;
           z-index: 1;
           position: relative;
-          text-transform: capitalize;
+          text-transform: uppercase;
         }
       }
       &[selected='selected'] {
